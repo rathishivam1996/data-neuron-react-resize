@@ -51,7 +51,7 @@ function createResizeObserver() {
   let ticking = false;
   let allEntries: ResizeObserverEntry[] = [];
 
-  const callbacks: Map<any, Array<UseResizeObserverCallback>> = new Map();
+  const callbackMap: Map<any, Array<UseResizeObserverCallback>> = new Map();
 
   const observer = new ResizeObserver(
     (entries: ResizeObserverEntry[], obs: Polyfill) => {
@@ -62,7 +62,7 @@ function createResizeObserver() {
           for (let i = 0; i < allEntries.length; i++) {
             if (triggered.has(allEntries[i].target)) continue;
             triggered.add(allEntries[i].target);
-            const cbs = callbacks.get(allEntries[i].target);
+            const cbs = callbackMap.get(allEntries[i].target);
             cbs?.forEach((cb) => cb(allEntries[i], obs));
           }
           allEntries = [];
@@ -75,22 +75,22 @@ function createResizeObserver() {
 
   return {
     observer,
-    subscribe(target: HTMLElement, callback: UseResizeObserverCallback) {
+    subscribe(target: HTMLElement, currCallback: UseResizeObserverCallback) {
       observer.observe(target);
-      const cbs = callbacks.get(target) ?? [];
-      cbs.push(callback);
-      callbacks.set(target, cbs);
+      const prevCbs = callbackMap.get(target) ?? [];
+      prevCbs.push(currCallback);
+      callbackMap.set(target, prevCbs);
     },
     unsubscribe(target: HTMLElement, callback: UseResizeObserverCallback) {
-      const cbs = callbacks.get(target) ?? [];
+      const cbs = callbackMap.get(target) ?? [];
       if (cbs.length === 1) {
         observer.unobserve(target);
-        callbacks.delete(target);
+        callbackMap.delete(target);
         return;
       }
       const cbIndex = cbs.indexOf(callback);
       if (cbIndex !== -1) cbs.splice(cbIndex, 1);
-      callbacks.set(target, cbs);
+      callbackMap.set(target, cbs);
     },
   };
 }

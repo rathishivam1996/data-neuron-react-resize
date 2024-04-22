@@ -6,28 +6,32 @@ const ResizeTest = () => {
   const [width, setWidth] = useState(200);
   const [height, setHeight] = useState(200);
 
-  const onResizeStart = ({ direction, size }) => {
+  const onResizeStart = ({ direction, size, startPos }) => {
     console.log(
-      `resize started direction: ${direction} size: ${JSON.stringify(size)}`,
+      `resize started direction: ${direction} size: ${JSON.stringify(size)} startPos: ${JSON.stringify(startPos)}`,
     );
   };
 
-  const onResize = ({ direction, deltaX, deltaY, newWidth, newHeight }) => {
-    console.log(
-      `resize direction: ${direction}, deltaX: ${deltaX}, deltaY: ${deltaY}, newWidth: ${newWidth}, newHeight: ${newHeight}`,
-    );
-    setWidth(newWidth);
-    setHeight(newHeight);
+  const onResize = () => {
+    // console.log(
+    //   `resize direction: ${direction}, deltaX: ${deltaX}, deltaY: ${deltaY}, newWidth: ${newWidth}, newHeight: ${newHeight}`,
+    // );
+    // setWidth(newWidth);
+    // setHeight(newHeight);
+
+    console.log(`onResizeCallback called`);
   };
+
   const onResizeEnd = () => {
-    console.log(`resize ended`);
+    console.log(`onResizeEndCallback called`);
   };
 
-  const { resizableRef, north, east, south, west, isResizing } = useResize({
-    onResizeStart,
-    onResize,
-    onResizeEnd,
-  });
+  const { resizableRef, top, right, bottom, left, isResizing } =
+    useResize<HTMLDivElement>({
+      onResizeStart,
+      onResize,
+      onResizeEnd,
+    });
 
   return (
     <div
@@ -36,22 +40,22 @@ const ResizeTest = () => {
       className="resizable-box relative bg-red-300"
     >
       <div
-        ref={north}
+        ref={top}
         className="resize-handle n absolute left-0 top-0 h-[10px] w-full cursor-pointer bg-gray-500"
       ></div>
 
       <div
-        ref={east}
+        ref={right}
         className="resize-handle e absolute right-0 top-0 h-full w-[10px] cursor-pointer bg-gray-500"
       ></div>
 
       <div
-        ref={south}
+        ref={bottom}
         className="resize-handle s absolute bottom-0 left-0 h-[10px] w-full cursor-pointer bg-gray-500"
       ></div>
 
       <div
-        ref={west}
+        ref={left}
         className="resize-handle w absolute left-0 top-0 h-full w-[10px] cursor-pointer bg-gray-500"
       ></div>
     </div>

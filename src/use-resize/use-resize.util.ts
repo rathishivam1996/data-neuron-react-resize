@@ -1,3 +1,53 @@
+import { ResizableDomEvents } from "./use-resize.types";
+
+// utils.ts
+type ElementInput<Target extends Element> = Target | React.RefObject<Target>;
+
+export function getSize<Target extends Element>(
+  elementInput: ElementInput<Target>,
+): DOMRect | undefined {
+  const element =
+    "current" in elementInput ? elementInput.current : elementInput;
+
+  return element?.getBoundingClientRect();
+}
+
+export function isTouchEvent(event: Event): event is TouchEvent {
+  return "touches" in event;
+}
+
+export function isMouseEvent(event: Event): event is MouseEvent {
+  return event instanceof MouseEvent;
+}
+
+export function isPointerEvent(event: Event): event is PointerEvent {
+  return event instanceof PointerEvent;
+}
+
+export function isRecognisableEvent(event: Event): event is ResizableDomEvents {
+  return isMouseEvent(event) || isTouchEvent(event) || isPointerEvent(event);
+}
+
+export function getCurrentPosition(
+  event: MouseEvent | TouchEvent | PointerEvent,
+): { x: number; y: number } | null {
+  if (isTouchEvent(event)) {
+    return {
+      x: event.touches[0].pageX,
+      y: event.touches[0].pageY,
+    };
+  }
+
+  if (isMouseEvent(event) || isPointerEvent(event)) {
+    return {
+      x: event.pageX,
+      y: event.pageY,
+    };
+  }
+
+  return null;
+}
+
 // export const calculateDirectionAndDelta = (event, initialPos) => {
 //   if (!initialPos) return null;
 
@@ -154,4 +204,3 @@
 
 //   return { direction, deltaX: newDeltaX, deltaY: newDeltaY };
 // };
-

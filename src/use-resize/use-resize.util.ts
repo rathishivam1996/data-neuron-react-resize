@@ -69,7 +69,6 @@ export function calculateNewSize(
 ): Size {
   let newSize: Size = { ...currentSize };
   const resizeDirection = getResizeDirection(handleDirection);
-  console.log(resizeDirection, "resizeDirection resizeDirection");
 
   switch (resizeDirection) {
     case "horizontal":

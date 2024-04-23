@@ -145,15 +145,40 @@ function useResize<Target extends Element = Element>({
         deltaY,
       );
 
-      console.log(newSize);
-
-      onResize && onResize();
+      onResize &&
+        onResize({
+          initialSize: state.initialSize,
+          resizeDirection: state.initialDirection,
+          deltaX,
+          deltaY,
+          newSize: newSize,
+        });
     },
     [onResize, state],
   );
 
   const handlePointerUp = useCallback(
     (event) => {
+      if (!state.startPos || !state.initialSize || !state.initialDirection)
+        return;
+
+      const endPosition = getCurrentPosition(event);
+
+      if (!endPosition) {
+        console.warn(
+          "Invalid event type: Unable to get initial position from event",
+        );
+        return;
+      }
+
+      const { deltaX, deltaY } = calculateDeltas(state.startPos, endPosition);
+      const newSize = calculateNewSize(
+        state.initialSize,
+        state.initialDirection,
+        deltaX,
+        deltaY,
+      );
+
       setState((prevState) => {
         return {
           ...prevState,
@@ -161,7 +186,14 @@ function useResize<Target extends Element = Element>({
         };
       });
 
-      onResizeEnd && onResizeEnd();
+      onResizeEnd &&
+        onResizeEnd({
+          initialSize: state.initialSize,
+          resizeDirection: state.initialDirection,
+          deltaX,
+          deltaY,
+          newSize,
+        });
     },
     [onResizeEnd],
   );
@@ -173,7 +205,7 @@ function useResize<Target extends Element = Element>({
     // Do nothing if SSR
     if (typeof window === "undefined") return;
 
-    const eventListeners: Array<() => void> = [];
+    const eventListenersMap = new Map<Direction, Array<() => void>>();
 
     Object.keys(state.handleRefs).forEach((key) => {
       const direction = key as Direction;
@@ -186,20 +218,26 @@ function useResize<Target extends Element = Element>({
           }
         };
 
-        // Attach down event listeners
         eventTypes.forEach((eventType) => {
+          // Attach down event listeners
           ref.addEventListener(eventType, handleEventDownDirection);
 
           // Remove down event listeners
-          eventListeners.push(() =>
-            ref.removeEventListener(eventType, handleEventDownDirection),
-          );
+          if (!eventListenersMap.has(direction))
+            eventListenersMap.set(direction, []);
+          eventListenersMap
+            .get(direction)
+            ?.push(() =>
+              ref.removeEventListener(eventType, handleEventDownDirection),
+            );
         });
       }
     });
 
     return () => {
-      eventListeners.forEach((removeListener) => removeListener());
+      eventListenersMap.forEach((listeners) => {
+        listeners.forEach((clb) => clb());
+      });
     };
   }, [handlePointerDown, state.handleRefs]);
 

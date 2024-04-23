@@ -1,55 +1,24 @@
-import React, {
-  RefObject,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Direction,
+  HandleRefs,
+  Position,
   ResizableDomEvents,
   ResizableEventType,
-  ResizableHandlers,
+  ResizableRef,
   ResizableResult,
+  Size,
 } from "./use-resize.types";
 import {
+  calculateDeltas,
+  calculateNewSize,
   getCurrentPosition,
   getSize,
   isRecognisableEvent,
 } from "./use-resize.util";
 
-type HandleRefs<Target extends Element> = {
-  top: React.RefObject<Target>;
-  topright: React.RefObject<Target>;
-  right: React.RefObject<Target>;
-  bottomright: React.RefObject<Target>;
-  bottom: React.RefObject<Target>;
-  bottomleft: React.RefObject<Target>;
-  left: React.RefObject<Target>;
-  topleft: React.RefObject<Target>;
-};
-
-type Position = {
-  x: number;
-  y: number;
-};
-
-type Size = {
-  w: number;
-  h: number;
-};
-
-type Direction =
-  | "top"
-  | "topright"
-  | "right"
-  | "bottomright"
-  | "bottom"
-  | "bottomleft"
-  | "left"
-  | "topleft";
-
 type ResizableState<Target extends Element> = {
-  resizableRef: RefObject<Target>;
+  resizableRef: ResizableRef<Target>;
   handleRefs: HandleRefs<Target>;
   isResizing: boolean;
   initialDirection: Direction | null;
@@ -58,11 +27,12 @@ type ResizableState<Target extends Element> = {
 };
 
 function useResize<Target extends Element = Element>({
+  disabled = false,
   detect = ResizableEventType.Pointer,
   onResizeStart,
   onResize,
   onResizeEnd,
-}): ResizableResult<ResizableHandlers<Target>> {
+}): ResizableResult<Target> {
   const initialState: ResizableState<Target> = {
     resizableRef: useRef(null),
     handleRefs: {
@@ -86,7 +56,7 @@ function useResize<Target extends Element = Element>({
   const handlePointerDown = useCallback(
     (direction: Direction, event: ResizableDomEvents) => {
       // Ignore unrecognised events
-      if (!isRecognisableEvent(event)) {
+      if (!isRecognisableEvent(event) || disabled) {
         return;
       }
       const rect: DOMRect | undefined = getSize(state.resizableRef);
@@ -118,28 +88,64 @@ function useResize<Target extends Element = Element>({
           h: height,
         },
       }));
+
+      // Call the start callback with the latest state data
+      if (onResizeStart) {
+        onResizeStart({
+          direction: direction,
+          size: { w: width, h: height },
+          startPos: startPos,
+        });
+      }
     },
     [onResizeStart],
   );
 
-  useEffect(() => {
-    if (state.isResizing && onResizeStart) {
-      onResizeStart({
-        direction: state.initialDirection,
-        size: state.initialSize,
-        startPos: state.startPos,
-      });
-    }
-  }, [
-    state.isResizing,
-    state.initialDirection,
-    state.initialSize,
-    onResizeStart,
-  ]);
+  // useEffect(() => {
+  //   if (state.isResizing && onResizeStart) {
+  //     onResizeStart({
+  //       direction: state.initialDirection,
+  //       size: state.initialSize,
+  //       startPos: state.startPos,
+  //     });
+  //   }
+  // }, [
+  //   state.isResizing,
+  //   state.initialDirection,
+  //   state.initialSize,
+  //   onResizeStart,
+  // ]);
 
   const handlePointerMove = useCallback(
-    (event) => {
-      if (!state.isResizing) return;
+    (event: ResizableDomEvents) => {
+      if (
+        disabled ||
+        !state.isResizing ||
+        !state.startPos ||
+        !state.initialSize ||
+        !state.initialDirection
+      )
+        return;
+
+      const newPosition = getCurrentPosition(event);
+
+      if (!newPosition) {
+        console.warn(
+          "Invalid event type: Unable to get initail position from event",
+        );
+        return;
+      }
+
+      const { deltaX, deltaY } = calculateDeltas(state.startPos, newPosition);
+
+      const newSize = calculateNewSize(
+        state.initialSize,
+        state.initialDirection,
+        deltaX,
+        deltaY,
+      );
+
+      console.log(newSize);
 
       onResize && onResize();
     },
@@ -169,19 +175,24 @@ function useResize<Target extends Element = Element>({
 
     const eventListeners: Array<() => void> = [];
 
-    Object.keys(state.handleRefs).forEach((direction) => {
-      const ref = state.handleRefs[direction as Direction].current;
+    Object.keys(state.handleRefs).forEach((key) => {
+      const direction = key as Direction;
+      const ref = state.handleRefs[direction]?.current;
 
       if (ref) {
-        const handleEventDownDirection = (event: ResizableDomEvents) =>
-          handlePointerDown(direction as Direction, event);
+        const handleEventDownDirection = (event: Event) => {
+          if (isRecognisableEvent(event)) {
+            handlePointerDown(direction, event);
+          }
+        };
 
         // Attach down event listeners
         eventTypes.forEach((eventType) => {
-          window.addEventListener(eventType, handleEventDownDirection);
+          ref.addEventListener(eventType, handleEventDownDirection);
+
           // Remove down event listeners
           eventListeners.push(() =>
-            window.removeEventListener(eventType, handleEventDownDirection),
+            ref.removeEventListener(eventType, handleEventDownDirection),
           );
         });
       }
@@ -194,14 +205,12 @@ function useResize<Target extends Element = Element>({
 
   // effect for move and up listeners
   useEffect(() => {
-    console.log(`move effect rinning`);
     if (state.isResizing && window) {
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
     }
 
     return () => {
-      console.log(`move effect cleanup`);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };

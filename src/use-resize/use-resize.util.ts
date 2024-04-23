@@ -1,4 +1,10 @@
-import { ResizableDomEvents } from "./use-resize.types";
+import {
+  Delta,
+  Direction,
+  Position,
+  ResizableDomEvents,
+  Size,
+} from "./use-resize.types";
 
 // utils.ts
 type ElementInput<Target extends Element> = Target | React.RefObject<Target>;
@@ -46,6 +52,72 @@ export function getCurrentPosition(
   }
 
   return null;
+}
+
+export function calculateDeltas(prevPos: Position, newPos: Position): Delta {
+  return {
+    deltaX: newPos.x - prevPos.x,
+    deltaY: newPos.y - prevPos.y,
+  };
+}
+
+export function calculateNewSize(
+  currentSize: Size,
+  handleDirection: Direction,
+  deltaX: number,
+  deltaY: number,
+): Size {
+  let newSize: Size = { ...currentSize };
+  const resizeDirection = getResizeDirection(handleDirection);
+  console.log(resizeDirection, "resizeDirection resizeDirection");
+
+  switch (resizeDirection) {
+    case "horizontal":
+      if (handleDirection === "right") {
+        newSize.w += deltaX;
+      } else if (handleDirection === "left") {
+        newSize.w -= deltaX;
+      }
+      break;
+    case "vertical":
+      if (handleDirection === "bottom") {
+        newSize.h += deltaY;
+      } else if (handleDirection === "top") {
+        newSize.h -= deltaY;
+      }
+      break;
+    case "diagonal":
+      if (handleDirection === "topright") {
+        newSize.w += deltaX;
+        newSize.h -= deltaY;
+      } else if (handleDirection === "bottomright") {
+        newSize.w += deltaX;
+        newSize.h += deltaY;
+      } else if (handleDirection === "bottomleft") {
+        newSize.w -= deltaX;
+        newSize.h += deltaY;
+      } else if (handleDirection === "topleft") {
+        newSize.w -= deltaX;
+        newSize.h -= deltaY;
+      }
+      break;
+    default:
+      break;
+  }
+
+  return newSize;
+}
+
+type ResizeDirection = "horizontal" | "vertical" | "diagonal";
+
+function getResizeDirection(handleDirection: Direction): ResizeDirection {
+  if (["top", "bottom"].includes(handleDirection)) {
+    return "vertical";
+  } else if (["left", "right"].includes(handleDirection)) {
+    return "horizontal";
+  } else {
+    return "diagonal";
+  }
 }
 
 // export const calculateDirectionAndDelta = (event, initialPos) => {

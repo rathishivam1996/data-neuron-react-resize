@@ -5,6 +5,7 @@ import {
   PointerEventHandler,
   TouchEvent as ReactTouchEvent,
   TouchEventHandler,
+  MutableRefObject,
 } from "react";
 
 export enum ResizableEventType {
@@ -13,39 +14,84 @@ export enum ResizableEventType {
   Pointer = "pointer",
 }
 
-export type ResizableResult<
-  T extends ResizableHandlers<Target> | ResizableEmptyHandlers,
-  Target extends Element = Element,
-> = T;
-
 export type ResizableDomEvents = MouseEvent | TouchEvent | PointerEvent;
 export type ResizableReactEvents<Target extends Element = Element> =
   | ReactMouseEvent<Target>
   | ReactTouchEvent<Target>
   | ReactPointerEvent<Target>;
 
-export type ResizableEmptyHandlers = Record<never, never>;
+export type Position = {
+  x: number;
+  y: number;
+};
 
-export interface ResizableMouseHandlers<Target extends Element = Element> {
+export interface Delta {
+  deltaX: number;
+  deltaY: number;
+}
+
+export type Size = {
+  w: number;
+  h: number;
+};
+
+export type Direction =
+  | "top"
+  | "topright"
+  | "right"
+  | "bottomright"
+  | "bottom"
+  | "bottomleft"
+  | "left"
+  | "topleft";
+
+export type HandleRefs<Target extends Element> = {
+  top: MutableRefObject<Target | null>;
+  topright: MutableRefObject<Target | null>;
+  right: MutableRefObject<Target | null>;
+  bottomright: MutableRefObject<Target | null>;
+  bottom: MutableRefObject<Target | null>;
+  bottomleft: MutableRefObject<Target | null>;
+  left: MutableRefObject<Target | null>;
+  topleft: MutableRefObject<Target | null>;
+};
+
+export type ResizableRef<Target extends Element> =
+  MutableRefObject<Target | null>;
+
+export type ResizableResult<T extends Element> = {
+  resizableRef: ResizableRef<T>;
+} & HandleRefs<T> & {
+    isResizing: boolean;
+  };
+
+// export type ResizableResult<
+//   T extends ResizableHandlers<Target> | ResizableEmptyHandlers,
+//   Target extends Element = Element,
+// > = T;
+
+type ResizableEmptyHandlers = Record<never, never>;
+
+interface ResizableMouseHandlers<Target extends Element = Element> {
   onMouseDown: MouseEventHandler<Target>;
   onMouseMove: MouseEventHandler<Target>;
   onMouseUp: MouseEventHandler<Target>;
   onMouseLeave?: MouseEventHandler<Target>;
 }
-export interface ResizableTouchHandlers<Target extends Element = Element> {
+interface ResizableTouchHandlers<Target extends Element = Element> {
   onTouchStart: TouchEventHandler<Target>;
   onTouchMove: TouchEventHandler<Target>;
   onTouchEnd: TouchEventHandler<Target>;
 }
 
-export interface ResizablePointerHandlers<Target extends Element = Element> {
+interface ResizablePointerHandlers<Target extends Element = Element> {
   onPointerDown: PointerEventHandler<Target>;
   onPointerMove: PointerEventHandler<Target>;
   onPointerUp: PointerEventHandler<Target>;
   onPointerLeave?: PointerEventHandler<Target>;
 }
 
-export type ResizableHandlers<Target extends Element = Element> =
+type ResizableHandlers<Target extends Element = Element> =
   | ResizableMouseHandlers<Target>
   | ResizableTouchHandlers<Target>
   | ResizablePointerHandlers<Target>

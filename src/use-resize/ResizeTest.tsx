@@ -6,49 +6,60 @@ const ResizeTest = () => {
   const [width, setWidth] = useState(200);
   const [height, setHeight] = useState(200);
 
-  const onResizeStart = ({ direction, size, startPos }) => {
-    console.log(
-      `resize started direction: ${direction} size: ${JSON.stringify(size)} startPos: ${JSON.stringify(startPos)}`,
-    );
+  const onResizeStart = ({ event, resizable, handle, direction, startPos, startSize }) => {
+    console.log(`Resize started:
+    Direction: ${direction}
+    Start Size: ${JSON.stringify(startSize)}
+    Start Position: ${JSON.stringify(startPos)}
+  `);
   };
 
   const onResize = ({
-    initialSize,
-    resizeDirection,
-    deltaX,
-    deltaY,
-    newSize,
+    event,
+    resizable,
+    handle,
+    direction,
+    startPos,
+    startSize,
+    delta,
+    currSize,
   }) => {
-    console.log(`onResize callback`);
-
-    console.log(
-      `initialSize: ${JSON.stringify(initialSize)}, resizeDirection: ${resizeDirection},  deltaX: ${deltaX}, deltaY: ${deltaY}, newSize: ${JSON.stringify(newSize)}`,
-    );
-    setWidth(newSize.w);
-    setHeight(newSize.h);
+    console.log(`Resizing:
+    Direction: ${direction}
+    Delta: ${JSON.stringify(delta)}
+    Current Size: ${JSON.stringify(currSize)}
+  `);
+    setWidth(currSize.w);
+    setHeight(currSize.h);
   };
 
   const onResizeEnd = ({
-    initialSize,
-    resizeDirection,
-    deltaX,
-    deltaY,
-    newSize,
+    event,
+    resizable,
+    handle,
+    direction,
+    startPos,
+    startSize,
+    delta,
+    currSize,
   }) => {
-    console.log(`onResizeEnd callback`);
-
-    console.log(
-      `initialSize: ${JSON.stringify(initialSize)}, resizeDirection: ${resizeDirection},  deltaX: ${deltaX}, deltaY: ${deltaY}, newSize: ${JSON.stringify(newSize)}`,
-    );
-    setWidth(newSize.w);
-    setHeight(newSize.h);
+    console.log(`Resize ended:
+    Direction: ${direction}
+    Delta: ${JSON.stringify(delta)}
+    Final Size: ${JSON.stringify(currSize)}
+  `);
+    setWidth(currSize.w);
+    setHeight(currSize.h);
   };
 
+  const [addTopRef, setAddTopRef] = useState(false);
   const { resizableRef, top, topright, right, bottom, left, isResizing } =
     useResize<HTMLDivElement>({
       onResizeStart,
       onResize,
       onResizeEnd,
+      minSize: { w: 10, h: 10 },
+      maxSize: { w: 500, h: 500 },
     });
 
   return (
@@ -57,10 +68,13 @@ const ResizeTest = () => {
       style={{ width: `${width}px`, height: `${height}px` }}
       className="resizable-box relative bg-red-300"
     >
-      <div
-        ref={top}
-        className="resize-handle n absolute left-0 top-0 h-[10px] w-full cursor-pointer bg-gray-500"
-      ></div>
+      {addTopRef && (
+        <div
+          ref={top}
+          className="resize-handle n absolute left-0 top-0 h-[10px] w-full cursor-pointer bg-gray-500"
+        ></div>
+      )}
+      <button onClick={() => setAddTopRef(!addTopRef)}>Toggle Top Ref</button>
 
       <div
         ref={topright}

@@ -86,16 +86,12 @@ function useResize<Target extends Element = Element>({
       const startPos = getCurrentPosition(event);
 
       if (!rect) {
-        console.warn(
-          "Invalid resizableRef: expected an HTMLElement or a RefObject.",
-        );
+        console.warn("Invalid resizableRef: expected an HTMLElement or a RefObject.");
         return;
       }
 
       if (!startPos) {
-        console.warn(
-          "Invalid event type: Unable to get initail position from event",
-        );
+        console.warn("Invalid event type: Unable to get initail position from event");
         return;
       }
 
@@ -124,14 +120,7 @@ function useResize<Target extends Element = Element>({
         });
       }
     },
-    [
-      onResizeStart,
-      disabled,
-      state.resizableRef,
-      state.handleRefs,
-      getCurrentPosition,
-      getSize,
-    ],
+    [onResizeStart, disabled, state.resizableRef, state.handleRefs],
   );
 
   // useEffect(() => {
@@ -153,8 +142,7 @@ function useResize<Target extends Element = Element>({
     (event: ResizableDomEvents) => {
       const { isResizing, startDirection, startPos, startSize } = state;
 
-      if (!isResizing || disabled || !startDirection || !startPos || !startSize)
-        return;
+      if (!isResizing || disabled || !startDirection || !startPos || !startSize) return;
 
       const resizable = state.resizableRef?.current;
       const handle = state.handleRefs[startDirection]?.current;
@@ -164,49 +152,33 @@ function useResize<Target extends Element = Element>({
       const newPosition = getCurrentPosition(event);
 
       if (!newPosition) {
-        console.warn(
-          "Invalid event type: Unable to get initial position from event",
-        );
+        console.warn("Invalid event type: Unable to get initial position from event");
         return;
       }
 
       const { deltaX, deltaY } = calculateDeltas(startPos, newPosition);
 
-      const newSize = calculateNewSize(
-        startSize,
-        startDirection,
-        deltaX,
-        deltaY,
-      );
+      const newSize = calculateNewSize(startSize, startDirection, deltaX, deltaY, minSize, maxSize);
 
-      onResize &&
-        onResize({
-          event,
-          resizable,
-          handle,
-          direction: startDirection,
-          startPos,
-          startSize,
-          delta: { deltaX, deltaY },
-          currSize: newSize,
-        });
+      onResize?.({
+        event,
+        resizable,
+        handle,
+        direction: startDirection,
+        startPos,
+        startSize,
+        delta: { deltaX, deltaY },
+        currSize: newSize,
+      });
     },
-    [
-      onResize,
-      state,
-      disabled,
-      getCurrentPosition,
-      calculateDeltas,
-      calculateNewSize,
-    ],
+    [onResize, state, disabled, getCurrentPosition, calculateDeltas, calculateNewSize],
   );
 
   const handlePointerUp = useCallback(
     (event: ResizableDomEvents) => {
       const { isResizing, startDirection, startPos, startSize } = state;
 
-      if (!isResizing || disabled || !startDirection || !startPos || !startSize)
-        return;
+      if (!isResizing || disabled || !startDirection || !startPos || !startSize) return;
 
       const resizable = state.resizableRef?.current;
       const handle = state.handleRefs[startDirection]?.current;
@@ -216,41 +188,30 @@ function useResize<Target extends Element = Element>({
       const newPosition = getCurrentPosition(event);
 
       if (!newPosition) {
-        console.warn(
-          "Invalid event type: Unable to get initial position from event",
-        );
+        console.warn("Invalid event type: Unable to get initial position from event");
         return;
       }
 
       const { deltaX, deltaY } = calculateDeltas(startPos, newPosition);
 
-      const newSize = calculateNewSize(
-        startSize,
-        startDirection,
-        deltaX,
-        deltaY,
-      );
+      const newSize = calculateNewSize(startSize, startDirection, deltaX, deltaY, minSize, maxSize);
 
-      onResizeEnd &&
-        onResizeEnd({
-          event,
-          resizable,
-          handle,
-          direction: startDirection,
-          startPos,
-          startSize,
-          delta: { deltaX, deltaY },
-          currSize: newSize,
-        });
+      setState((prevState) => {
+        return { ...prevState, isResizing: false };
+      });
+
+      onResizeEnd?.({
+        event,
+        resizable,
+        handle,
+        direction: startDirection,
+        startPos,
+        startSize,
+        delta: { deltaX, deltaY },
+        currSize: newSize,
+      });
     },
-    [
-      onResize,
-      state,
-      disabled,
-      getCurrentPosition,
-      calculateDeltas,
-      calculateNewSize,
-    ],
+    [onResize, state, disabled, getCurrentPosition, calculateDeltas, calculateNewSize],
   );
 
   const eventTypes = ["pointerdown", "mousedown", "touchstart"] as const;
@@ -278,13 +239,11 @@ function useResize<Target extends Element = Element>({
           ref.addEventListener(eventType, handleEventDownDirection);
 
           // Remove down event listeners
-          if (!eventListenersMap.has(direction))
-            eventListenersMap.set(direction, []);
+          if (!eventListenersMap.has(direction)) eventListenersMap.set(direction, []);
+
           eventListenersMap
             .get(direction)
-            ?.push(() =>
-              ref.removeEventListener(eventType, handleEventDownDirection),
-            );
+            ?.push(() => ref.removeEventListener(eventType, handleEventDownDirection));
         });
       }
     });
@@ -299,11 +258,13 @@ function useResize<Target extends Element = Element>({
   // effect for move and up listeners
   useEffect(() => {
     if (state.isResizing && window) {
+      console.log(`added`)
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
     }
 
     return () => {
+      console.log(`removed`)
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };

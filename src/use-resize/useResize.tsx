@@ -7,6 +7,9 @@ import {
   ResizableEventType,
   ResizableRef,
   ResizableResult,
+  ResizeCallback,
+  ResizeEndCallback,
+  ResizeStartCallback,
   Size,
 } from "./use-resize.types";
 import {
@@ -21,9 +24,19 @@ type ResizableState<Target extends Element> = {
   resizableRef: ResizableRef<Target>;
   handleRefs: HandleRefs<Target>;
   isResizing: boolean;
-  initialDirection: Direction | null;
+  startDirection: Direction | null;
   startPos: Position | null;
-  initialSize: Size | null;
+  startSize: Size | null;
+};
+
+export type UseResizeProps<Target extends Element = Element> = {
+  disabled?: boolean;
+  detect?: ResizableEventType;
+  onResizeStart?: ResizeStartCallback<Target>;
+  onResize?: ResizeCallback<Target>;
+  onResizeEnd?: ResizeEndCallback<Target>;
+  minSize?: Size;
+  maxSize?: Size;
 };
 
 function useResize<Target extends Element = Element>({
@@ -32,7 +45,15 @@ function useResize<Target extends Element = Element>({
   onResizeStart,
   onResize,
   onResizeEnd,
-}): ResizableResult<Target> {
+  minSize = {
+    w: 0,
+    h: 0,
+  },
+  maxSize = {
+    w: Infinity,
+    h: Infinity,
+  },
+}: UseResizeProps<Target>): ResizableResult<Target> {
   const initialState: ResizableState<Target> = {
     resizableRef: useRef(null),
     handleRefs: {
@@ -46,17 +67,19 @@ function useResize<Target extends Element = Element>({
       topleft: useRef(null),
     },
     isResizing: false,
-    initialDirection: null,
+    startDirection: null,
     startPos: null,
-    initialSize: null,
+    startSize: null,
   };
 
   const [state, setState] = useState(initialState);
 
   const handlePointerDown = useCallback(
     (direction: Direction, event: ResizableDomEvents) => {
-      // Ignore unrecognised events
-      if (!isRecognisableEvent(event) || disabled) {
+      const resizable = state.resizableRef?.current;
+      const handle = state.handleRefs[direction]?.current;
+
+      if (!isRecognisableEvent(event) || disabled || !resizable || !handle) {
         return;
       }
       const rect: DOMRect | undefined = getSize(state.resizableRef);
@@ -81,9 +104,9 @@ function useResize<Target extends Element = Element>({
       setState((prevState) => ({
         ...prevState,
         isResizing: true,
-        initialDirection: direction,
+        startDirection: direction,
         startPos: startPos,
-        initialSize: {
+        startSize: {
           w: width,
           h: height,
         },
@@ -92,13 +115,23 @@ function useResize<Target extends Element = Element>({
       // Call the start callback with the latest state data
       if (onResizeStart) {
         onResizeStart({
+          event: event,
+          resizable: resizable,
+          handle: handle,
           direction: direction,
-          size: { w: width, h: height },
+          startSize: { w: width, h: height },
           startPos: startPos,
         });
       }
     },
-    [onResizeStart],
+    [
+      onResizeStart,
+      disabled,
+      state.resizableRef,
+      state.handleRefs,
+      getCurrentPosition,
+      getSize,
+    ],
   );
 
   // useEffect(() => {
@@ -118,52 +151,106 @@ function useResize<Target extends Element = Element>({
 
   const handlePointerMove = useCallback(
     (event: ResizableDomEvents) => {
-      if (
-        disabled ||
-        !state.isResizing ||
-        !state.startPos ||
-        !state.initialSize ||
-        !state.initialDirection
-      )
+      const { isResizing, startDirection, startPos, startSize } = state;
+
+      if (!isResizing || disabled || !startDirection || !startPos || !startSize)
         return;
+
+      const resizable = state.resizableRef?.current;
+      const handle = state.handleRefs[startDirection]?.current;
+
+      if (!resizable || !handle) return;
 
       const newPosition = getCurrentPosition(event);
 
       if (!newPosition) {
         console.warn(
-          "Invalid event type: Unable to get initail position from event",
+          "Invalid event type: Unable to get initial position from event",
         );
         return;
       }
 
-      const { deltaX, deltaY } = calculateDeltas(state.startPos, newPosition);
+      const { deltaX, deltaY } = calculateDeltas(startPos, newPosition);
 
       const newSize = calculateNewSize(
-        state.initialSize,
-        state.initialDirection,
+        startSize,
+        startDirection,
         deltaX,
         deltaY,
       );
 
-      console.log(newSize);
-
-      onResize && onResize();
+      onResize &&
+        onResize({
+          event,
+          resizable,
+          handle,
+          direction: startDirection,
+          startPos,
+          startSize,
+          delta: { deltaX, deltaY },
+          currSize: newSize,
+        });
     },
-    [onResize, state],
+    [
+      onResize,
+      state,
+      disabled,
+      getCurrentPosition,
+      calculateDeltas,
+      calculateNewSize,
+    ],
   );
 
   const handlePointerUp = useCallback(
-    (event) => {
-      setState((prevState) => {
-        return {
-          ...prevState,
-          isResizing: false,
-        };
-      });
+    (event: ResizableDomEvents) => {
+      const { isResizing, startDirection, startPos, startSize } = state;
 
-      onResizeEnd && onResizeEnd();
+      if (!isResizing || disabled || !startDirection || !startPos || !startSize)
+        return;
+
+      const resizable = state.resizableRef?.current;
+      const handle = state.handleRefs[startDirection]?.current;
+
+      if (!resizable || !handle) return;
+
+      const newPosition = getCurrentPosition(event);
+
+      if (!newPosition) {
+        console.warn(
+          "Invalid event type: Unable to get initial position from event",
+        );
+        return;
+      }
+
+      const { deltaX, deltaY } = calculateDeltas(startPos, newPosition);
+
+      const newSize = calculateNewSize(
+        startSize,
+        startDirection,
+        deltaX,
+        deltaY,
+      );
+
+      onResizeEnd &&
+        onResizeEnd({
+          event,
+          resizable,
+          handle,
+          direction: startDirection,
+          startPos,
+          startSize,
+          delta: { deltaX, deltaY },
+          currSize: newSize,
+        });
     },
-    [onResizeEnd],
+    [
+      onResize,
+      state,
+      disabled,
+      getCurrentPosition,
+      calculateDeltas,
+      calculateNewSize,
+    ],
   );
 
   const eventTypes = ["pointerdown", "mousedown", "touchstart"] as const;

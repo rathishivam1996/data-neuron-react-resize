@@ -66,39 +66,76 @@ export function calculateNewSize(
   handleDirection: Direction,
   deltaX: number,
   deltaY: number,
+  minSize?: Size,
+  maxSize?: Size,
 ): Size {
   let newSize: Size = { ...currentSize };
   const resizeDirection = getResizeDirection(handleDirection);
-  console.log(resizeDirection, "resizeDirection resizeDirection");
 
   switch (resizeDirection) {
     case "horizontal":
       if (handleDirection === "right") {
-        newSize.w += deltaX;
+        newSize.w = Math.min(
+          maxSize?.w ?? Infinity,
+          Math.max(minSize?.w ?? 0, currentSize.w + deltaX),
+        );
       } else if (handleDirection === "left") {
-        newSize.w -= deltaX;
+        newSize.w = Math.min(
+          maxSize?.w ?? Infinity,
+          Math.max(minSize?.w ?? 0, currentSize.w - deltaX),
+        );
       }
       break;
     case "vertical":
       if (handleDirection === "bottom") {
-        newSize.h += deltaY;
+        newSize.h = Math.min(
+          maxSize?.h ?? Infinity,
+          Math.max(minSize?.h ?? 0, currentSize.h + deltaY),
+        );
       } else if (handleDirection === "top") {
-        newSize.h -= deltaY;
+        newSize.h = Math.min(
+          maxSize?.h ?? Infinity,
+          Math.max(minSize?.h ?? 0, currentSize.h - deltaY),
+        );
       }
       break;
     case "diagonal":
       if (handleDirection === "topright") {
-        newSize.w += deltaX;
-        newSize.h -= deltaY;
+        newSize.w = Math.min(
+          maxSize?.w ?? Infinity,
+          Math.max(minSize?.w ?? 0, currentSize.w + deltaX),
+        );
+        newSize.h = Math.min(
+          maxSize?.h ?? Infinity,
+          Math.max(minSize?.h ?? 0, currentSize.h - deltaY),
+        );
       } else if (handleDirection === "bottomright") {
-        newSize.w += deltaX;
-        newSize.h += deltaY;
+        newSize.w = Math.min(
+          maxSize?.w ?? Infinity,
+          Math.max(minSize?.w ?? 0, currentSize.w + deltaX),
+        );
+        newSize.h = Math.min(
+          maxSize?.h ?? Infinity,
+          Math.max(minSize?.h ?? 0, currentSize.h + deltaY),
+        );
       } else if (handleDirection === "bottomleft") {
-        newSize.w -= deltaX;
-        newSize.h += deltaY;
+        newSize.w = Math.min(
+          maxSize?.w ?? Infinity,
+          Math.max(minSize?.w ?? 0, currentSize.w - deltaX),
+        );
+        newSize.h = Math.min(
+          maxSize?.h ?? Infinity,
+          Math.max(minSize?.h ?? 0, currentSize.h + deltaY),
+        );
       } else if (handleDirection === "topleft") {
-        newSize.w -= deltaX;
-        newSize.h -= deltaY;
+        newSize.w = Math.min(
+          maxSize?.w ?? Infinity,
+          Math.max(minSize?.w ?? 0, currentSize.w - deltaX),
+        );
+        newSize.h = Math.min(
+          maxSize?.h ?? Infinity,
+          Math.max(minSize?.h ?? 0, currentSize.h - deltaY),
+        );
       }
       break;
     default:

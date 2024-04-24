@@ -59,6 +59,28 @@ export type HandleRefs<Target extends Element> = {
 export type ResizableRef<Target extends Element> =
   MutableRefObject<Target | null>;
 
+export type ResizeStartCallback<Target extends Element> = (props: {
+  event: ResizableDomEvents;
+  resizable: Target;
+  handle: Target;
+  direction: Direction;
+  startPos: Position;
+  startSize: Size;
+}) => any;
+
+export type ResizeCallback<Target extends Element> = (props: {
+  event: ResizableDomEvents;
+  resizable: Target;
+  handle: Target;
+  direction: Direction;
+  startPos: Position;
+  startSize: Size;
+  delta: Delta;
+  currSize: Size;
+}) => any;
+
+export type ResizeEndCallback<Target extends Element> = ResizeCallback<Target>;
+
 export type ResizableResult<T extends Element> = {
   resizableRef: ResizableRef<T>;
 } & HandleRefs<T> & {

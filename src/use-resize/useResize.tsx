@@ -260,7 +260,7 @@ function useResize<Target extends Element = Element>({
     // Do nothing if SSR
     if (typeof window === "undefined") return;
 
-    const eventListeners: Array<() => void> = [];
+    const eventListenersMap = new Map<Direction, Array<() => void>>();
 
     Object.keys(state.handleRefs).forEach((key) => {
       const direction = key as Direction;
@@ -273,20 +273,26 @@ function useResize<Target extends Element = Element>({
           }
         };
 
-        // Attach down event listeners
         eventTypes.forEach((eventType) => {
+          // Attach down event listeners
           ref.addEventListener(eventType, handleEventDownDirection);
 
           // Remove down event listeners
-          eventListeners.push(() =>
-            ref.removeEventListener(eventType, handleEventDownDirection),
-          );
+          if (!eventListenersMap.has(direction))
+            eventListenersMap.set(direction, []);
+          eventListenersMap
+            .get(direction)
+            ?.push(() =>
+              ref.removeEventListener(eventType, handleEventDownDirection),
+            );
         });
       }
     });
 
     return () => {
-      eventListeners.forEach((removeListener) => removeListener());
+      eventListenersMap.forEach((listeners) => {
+        listeners.forEach((clb) => clb());
+      });
     };
   }, [handlePointerDown, state.handleRefs]);
 

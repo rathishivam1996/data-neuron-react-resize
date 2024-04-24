@@ -12,21 +12,39 @@ const ResizeTest = () => {
     );
   };
 
-  const onResize = () => {
-    // console.log(
-    //   `resize direction: ${direction}, deltaX: ${deltaX}, deltaY: ${deltaY}, newWidth: ${newWidth}, newHeight: ${newHeight}`,
-    // );
-    // setWidth(newWidth);
-    // setHeight(newHeight);
+  const onResize = ({
+    initialSize,
+    resizeDirection,
+    deltaX,
+    deltaY,
+    newSize,
+  }) => {
+    console.log(`onResize callback`);
 
-    console.log(`onResizeCallback called`);
+    console.log(
+      `initialSize: ${JSON.stringify(initialSize)}, resizeDirection: ${resizeDirection},  deltaX: ${deltaX}, deltaY: ${deltaY}, newSize: ${JSON.stringify(newSize)}`,
+    );
+    setWidth(newSize.w);
+    setHeight(newSize.h);
   };
 
-  const onResizeEnd = () => {
-    console.log(`onResizeEndCallback called`);
+  const onResizeEnd = ({
+    initialSize,
+    resizeDirection,
+    deltaX,
+    deltaY,
+    newSize,
+  }) => {
+    console.log(`onResizeEnd callback`);
+
+    console.log(
+      `initialSize: ${JSON.stringify(initialSize)}, resizeDirection: ${resizeDirection},  deltaX: ${deltaX}, deltaY: ${deltaY}, newSize: ${JSON.stringify(newSize)}`,
+    );
+    setWidth(newSize.w);
+    setHeight(newSize.h);
   };
 
-  const { resizableRef, top, right, bottom, left, isResizing } =
+  const { resizableRef, top, topright, right, bottom, left, isResizing } =
     useResize<HTMLDivElement>({
       onResizeStart,
       onResize,
@@ -42,6 +60,11 @@ const ResizeTest = () => {
       <div
         ref={top}
         className="resize-handle n absolute left-0 top-0 h-[10px] w-full cursor-pointer bg-gray-500"
+      ></div>
+
+      <div
+        ref={topright}
+        className="resize-handle e absolute right-0 top-0 z-10 h-[10px] w-[10px] cursor-pointer bg-orange-500"
       ></div>
 
       <div
